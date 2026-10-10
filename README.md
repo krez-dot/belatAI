@@ -11,8 +11,7 @@ Powered by [llamafile](https://github.com/Mozilla-Ocho/llamafile) + Meta's **Lla
 | File | What it is |
 |------|------------|
 | `belat.html` | The custom chat interface — personality baked in, talks to your local engine |
-| `START-AI.bat` | Launcher for the **text brain** (smart chat) |
-| `START-VISION.bat` | Launcher for the **vision brain** (belat can see images) |
+| `START-AI.bat` | One-click launcher: starts the engine and opens belat |
 | `.gitignore` | Keeps the huge engine/model files out of git |
 
 > The **engine** (`llamafile.exe`, ~351 MB) and the **model** (`model.gguf`, ~4.7 GB) are **not** in this repo — GitHub rejects files that big. You download them once (below).
@@ -46,19 +45,6 @@ It starts the local engine and opens **belat** in your browser. Keep the black w
 Fully offline — turn off your WiFi and it still works. ✅
 
 ---
-
-## 👁️ Vision mode (optional — belat can see images)
-
-belat has **two brains**, each on the same port, so you boot whichever you need:
-
-- **`START-AI.bat`** → text brain (Llama 3.1 8B) — best for normal chat/coding
-- **`START-VISION.bat`** → vision brain (Qwen2-VL-2B) — lets belat *see* images you attach or paste (📎 button). Good at reading text in images too. Weaker at plain text chat, so only use it when you need images.
-
-For vision mode you also need two more files in the folder (gitignored — download once):
-- `vision-model.gguf` — [Qwen2-VL-2B-Instruct-Q4_K_M.gguf](https://huggingface.co/bartowski/Qwen2-VL-2B-Instruct-GGUF) (renamed)
-- `vision-mmproj.gguf` — `mmproj-Qwen2-VL-2B-Instruct-f16.gguf` from the same repo (renamed)
-
-Boot one brain at a time (running both at once is heavy on modest RAM).
 
 ## ✨ Features
 

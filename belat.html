@@ -83,12 +83,6 @@
   .send:active{transform:translateY(1px)} .send:disabled{opacity:.45}
   .send.stopping{background:#e0564f;box-shadow:0 6px 14px rgba(224,86,79,.35)}
   .footnote{text-align:center;color:var(--muted);font-size:.76rem;margin-top:12px}
-  .bub-img{max-width:280px;max-height:280px;border-radius:12px;display:block;margin-bottom:8px}
-  .attach-preview{display:none;max-width:760px;margin:0 auto 8px;align-items:center;gap:10px}
-  .attach-preview.show{display:flex}
-  .attach-preview img{width:52px;height:52px;object-fit:cover;border-radius:10px;border:1px solid var(--card-line)}
-  .attach-preview .rm{border:none;background:var(--hover);color:var(--ink);border-radius:8px;width:28px;height:28px;cursor:pointer}
-  .attach-preview .lbl{color:var(--muted);font-size:.82rem}
   /* skills popover */
   .skills-pop{position:absolute;left:50%;transform:translateX(-50%);bottom:84px;width:min(760px,calc(100% - 40px));background:var(--card);border:1px solid var(--card-line);border-radius:16px;box-shadow:0 14px 40px rgba(0,0,0,.18);padding:8px;display:none;z-index:20}
   .skills-pop.open{display:block}
@@ -156,11 +150,8 @@
     </div>
     <div class="composer">
       <div class="skills-pop" id="skillsPop"></div>
-      <div class="attach-preview" id="attachPreview"></div>
-      <input type="file" id="fileInput" accept="image/*" style="display:none">
       <div class="input-wrap">
         <button class="icon-btn" id="skillsBtn" title="skills">⚡</button>
-        <button class="icon-btn" id="attachBtn" title="attach image (needs vision mode)">📎</button>
         <textarea id="msg" rows="1" placeholder="message belat…"></textarea>
         <button class="send" id="send"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
       </div>
@@ -227,7 +218,7 @@
 
   const $=s=>document.querySelector(s);
   const chatList=$('#chatList'),hero=$('#hero'),messagesEl=$('#messages'),msg=$('#msg'),sendBtn=$('#send');
-  let convos=lsGet('belat_convos',[]),currentId=null,streaming=false,pendingImage=null,controller=null;
+  let convos=lsGet('belat_convos',[]),currentId=null,streaming=false,controller=null;
   const SEND_ICON='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
   const STOP_ICON='<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="3"/></svg>';
   function setSendStop(stop){sendBtn.innerHTML=stop?STOP_ICON:SEND_ICON;sendBtn.title=stop?'stop':'send';sendBtn.classList.toggle('stopping',stop)}
@@ -271,13 +262,10 @@
   function ensureConvo(t){let c=current();if(c)return c;c={id:Date.now().toString(),title:(t||'a fresh conversation').slice(0,38),messages:[]};convos.unshift(c);currentId=c.id;lsSet('belat_convos',convos);renderList();return c}
   function openConvo(id){currentId=id;const c=current();messagesEl.innerHTML='';(c.messages||[]).forEach(m=>addBubble(m.role==='user'?'user':'belat',m.content));showHero(false);renderList();scrollDown();msg.focus()}
   function newChat(){currentId=null;messagesEl.innerHTML='';showHero(true);renderList();msg.focus()}
-  function addBubble(who,text,imgUrl){
+  function addBubble(who,text){
     const row=document.createElement('div');row.className='msg '+(who==='user'?'user':'belat');
     if(who!=='user'){const w=document.createElement('div');w.className='who';w.textContent=settings().name||'belat';row.appendChild(w)}
-    const b=document.createElement('div');b.className='bubble';
-    if(imgUrl){const im=document.createElement('img');im.className='bub-img';im.src=imgUrl;b.appendChild(im)}
-    if(text)b.appendChild(document.createTextNode(text));
-    row.appendChild(b);
+    const b=document.createElement('div');b.className='bubble';if(text)b.textContent=text;row.appendChild(b);
     messagesEl.appendChild(row);scrollDown();return b;
   }
 
@@ -312,10 +300,9 @@
   /* ---- send ---- */
   async function send(raw){
     let text=(raw!=null?raw:msg.value).trim();
-    if((!text&&!pendingImage)||streaming)return;
-    const img=pendingImage;
-    // slash commands (ignored when an image is attached)
-    if(text.startsWith('/')&&!img){
+    if(!text||streaming)return;
+    // slash commands
+    if(text.startsWith('/')){
       const r=handleSkill(text);
       if(r&&r.kind==='remember'){
         msg.value='';autoGrow();
@@ -331,20 +318,18 @@
       if(r&&r.kind==='unknown'){msg.value='';autoGrow();showHero(false);addBubble('belat','hmm, i don’t know /'+r.name+'. try /help to see my skills.');return;}
       if(r&&r.kind==='prompt'){text=r.text;}
     }
-    msg.value='';autoGrow();showHero(false);clearImage();
-    const c=ensureConvo(text||'(image)');
-    addBubble('user',text,img);
-    c.messages.push({role:'user',content:(img?((text?text+' ':'')+'[image attached]'):text)});
-    if(c.messages.length===1){c.title=(text||'image').slice(0,38);renderList()}
+    msg.value='';autoGrow();showHero(false);
+    const c=ensureConvo(text);
+    addBubble('user',text);
+    c.messages.push({role:'user',content:text});
+    if(c.messages.length===1){c.title=text.slice(0,38);renderList()}
     lsSet('belat_convos',convos);
 
     const b=addBubble('belat','');b.innerHTML='<span class="dots"><i></i><i></i><i></i></span>';
     streaming=true;setSendStop(true);let full='';
     controller=new AbortController();
     try{
-      const prior=c.messages.slice(0,-1).map(m=>({role:m.role,content:m.content}));
-      const lastUser=img?{role:'user',content:[{type:'text',text:text||'describe this image in detail. if it contains code or text, read it as accurately as you can.'},{type:'image_url',image_url:{url:img}}]}:{role:'user',content:text};
-      const payload={messages:[{role:'system',content:buildSystem()},...prior,lastUser],stream:true,temperature:0.7,max_tokens:512};
+      const payload={messages:[{role:'system',content:buildSystem()},...c.messages],stream:true,temperature:0.7,max_tokens:512};
       const resp=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:controller.signal});
       if(!resp.ok)throw new Error('HTTP '+resp.status);
       const reader=resp.body.getReader(),dec=new TextDecoder();let buf='';b.textContent='';
@@ -363,20 +348,6 @@
     }
   }
   function autoGrow(){msg.style.height='auto';msg.style.height=Math.min(msg.scrollHeight,140)+'px'}
-
-  /* ---- image attach ---- */
-  function renderPreview(){
-    const p=$('#attachPreview');
-    if(!pendingImage){p.classList.remove('show');p.innerHTML='';return}
-    p.innerHTML='';
-    const im=document.createElement('img');im.src=pendingImage;
-    const lbl=document.createElement('span');lbl.className='lbl';lbl.textContent='image attached — belat needs vision mode (START-VISION.bat) to see it';
-    const rm=document.createElement('button');rm.className='rm';rm.textContent='✕';rm.onclick=clearImage;
-    p.appendChild(im);p.appendChild(lbl);p.appendChild(rm);p.classList.add('show');
-  }
-  function setImage(u){pendingImage=u;renderPreview()}
-  function clearImage(){pendingImage=null;renderPreview();const fi=$('#fileInput');if(fi)fi.value=''}
-  function fileToDataUrl(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f)})}
 
   /* ---- settings modal ---- */
   function openSettings(){
@@ -404,9 +375,6 @@
   msg.addEventListener('input',autoGrow);
   $('#newChat').onclick=newChat;
   document.querySelectorAll('.card').forEach(c=>c.onclick=()=>send(c.dataset.prompt));
-  $('#attachBtn').onclick=()=>$('#fileInput').click();
-  $('#fileInput').addEventListener('change',async e=>{const f=e.target.files[0];if(f&&f.type.startsWith('image/'))setImage(await fileToDataUrl(f))});
-  msg.addEventListener('paste',async e=>{const items=(e.clipboardData&&e.clipboardData.items)||[];for(const it of items){if(it.type&&it.type.startsWith('image/')){const f=it.getAsFile();if(f){e.preventDefault();setImage(await fileToDataUrl(f));break}}}});
   $('#skillsBtn').onclick=()=>$('#skillsPop').classList.toggle('open');
   document.addEventListener('click',e=>{if(!e.target.closest('#skillsPop')&&!e.target.closest('#skillsBtn'))$('#skillsPop').classList.remove('open')});
   $('#settingsBtn').onclick=openSettings;
