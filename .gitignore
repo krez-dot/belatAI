@@ -1,0 +1,8 @@
+# Big binaries — too large for GitHub (100MB limit). Downloaded separately (see README).
+*.gguf
+*.exe
+*.llamafile
+
+# logs / temp
+*.log
+*.err
