@@ -25,8 +25,8 @@ if not exist "model.gguf" (
   exit /b
 )
 
-rem open YOUR custom Need A Ride page, then start the engine behind it
-start "" "%~dp0Need-A-Ride.html"
+rem open YOUR custom belat page, then start the engine behind it
+start "" "%~dp0belat.html"
 llamafile.exe -m model.gguf --server --host 127.0.0.1 --port 8090 --gpu disable --nologo
 
 echo.
